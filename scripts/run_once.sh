@@ -89,7 +89,18 @@ add_verr() { VALIDATION_ERRORS+=("$1"); }
 
 verr_json() {
   [[ ${#VALIDATION_ERRORS[@]} -eq 0 ]] && { printf '[]'; return 0; }
-  printf '%s\n' "${VALIDATION_ERRORS[@]}" | jq -Rsc 'split("\n") | map(select(length>0))'
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s\n' "${VALIDATION_ERRORS[@]}" | jq -Rsc 'split("\n") | map(select(length>0))'
+    return 0
+  fi
+  local first=1 item
+  printf '['
+  for item in "${VALIDATION_ERRORS[@]}"; do
+    (( first == 0 )) && printf ','
+    first=0
+    printf '"%s"' "$(jesc "${item}")"
+  done
+  printf ']'
 }
 
 parse_cfst_argv() { CFST_ARGV=(); [[ -n "${CFST_ARGS}" ]] && read -r -a CFST_ARGV <<< "${CFST_ARGS}"; }
@@ -117,8 +128,23 @@ load_config() {
   # shellcheck source=/dev/null
   . "${CONFIG_FILE}" || { add_verr "failed to load config: ${CONFIG_FILE}"; return 1; }
 
-  : "${SCRIPT_VERSION:=1.0.0}" : "${SCHEMA_VERSION:=1.0}" : "${RUN_TIMEOUT_SEC:=900}"
-  : "${HISTORY_MAX_LINES:=100000}" : "${LOG_ROTATE_SIZE_MB:=100}" : "${SCHEDULE_INTERVAL_MIN:=20}"
+  : "${CFST_BIN:=/opt/cfst-collector/bin/CloudflareST}"
+  : "${CFST_WORKDIR:=/opt/cfst-collector/bin}"
+  : "${RESULT_FILE:=/opt/cfst-collector/data/result.csv}"
+  : "${IP_VERSION:=4}"
+  : "${PRIMARY_TEST_URL:=}"
+  : "${CFST_ARGS:=}"
+  : "${LOCK_FILE:=/opt/cfst-collector/data/run.lock}"
+  : "${LOCK_META_FILE:=/opt/cfst-collector/data/run.lock.meta.json}"
+  : "${STATE_FILE:=/opt/cfst-collector/data/state.json}"
+  : "${HISTORY_FILE:=/opt/cfst-collector/data/history.jsonl}"
+  : "${LOG_FILE:=/opt/cfst-collector/logs/app.log}"
+  : "${SCRIPT_VERSION:=1.0.0}"
+  : "${SCHEMA_VERSION:=1.0}"
+  : "${RUN_TIMEOUT_SEC:=900}"
+  : "${HISTORY_MAX_LINES:=100000}"
+  : "${LOG_ROTATE_SIZE_MB:=100}"
+  : "${SCHEDULE_INTERVAL_MIN:=20}"
   parse_cfst_argv
   return 0
 }
@@ -318,18 +344,18 @@ validate_cmd() {
 }
 
 self_check_cmd() {
-  local deps='[]' ok=true cfg_ok=true dep e data d
+  local deps='[]' dep_ok=true overall_ok=true cfg_ok=true dep e data d
   for dep in bash flock timeout awk sed grep jq; do
     if command -v "${dep}" >/dev/null 2>&1; then deps="$(jq -cn --argjson a "${deps}" --arg name "${dep}" '$a + [{"name":$name,"ok":true}]')"
-    else deps="$(jq -cn --argjson a "${deps}" --arg name "${dep}" '$a + [{"name":$name,"ok":false}]')"; ok=false; fi
+    else deps="$(jq -cn --argjson a "${deps}" --arg name "${dep}" '$a + [{"name":$name,"ok":false}]')"; dep_ok=false; overall_ok=false; fi
   done
-  load_config || { cfg_ok=false; ok=false; e="$(verr_json)"; }
-  if [[ "${cfg_ok}" == "true" ]]; then validate_config || { cfg_ok=false; ok=false; e="$(verr_json)"; }; fi
+  load_config || { cfg_ok=false; overall_ok=false; e="$(verr_json)"; }
+  if [[ "${cfg_ok}" == "true" ]]; then validate_config || { cfg_ok=false; overall_ok=false; e="$(verr_json)"; }; fi
   [[ -z "${e:-}" ]] && e='[]'
   d=''; [[ "${cfg_ok}" == "true" ]] && d="${STATE_FILE}" || d=""
-  data="$(jq -cn --argjson dependencies "${deps}" --argjson dependenciesValid "${ok}" --argjson configValid "${cfg_ok}" --argjson configErrors "${e}" \
+  data="$(jq -cn --argjson dependencies "${deps}" --argjson dependenciesValid "${dep_ok}" --argjson configValid "${cfg_ok}" --argjson configErrors "${e}" \
     --arg configFile "${CONFIG_FILE}" --arg stateFile "${d}" '{dependencies:$dependencies,dependenciesValid:$dependenciesValid,configValid:$configValid,configErrors:$configErrors,files:{configFile:$configFile,stateFile:$stateFile}}')"
-  [[ "${ok}" == "true" && "${cfg_ok}" == "true" ]] && emit true "OK" "success" "${data}" "${EXIT_OK}" || emit false "CONFIG_INVALID" "self-check failed" "${data}" "${EXIT_CONFIG_INVALID}"
+  [[ "${overall_ok}" == "true" && "${cfg_ok}" == "true" ]] && emit true "OK" "success" "${data}" "${EXIT_OK}" || emit false "CONFIG_INVALID" "self-check failed" "${data}" "${EXIT_CONFIG_INVALID}"
 }
 
 version_cmd() {

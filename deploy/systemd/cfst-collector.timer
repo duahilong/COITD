@@ -1,0 +1,13 @@
+[Unit]
+Description=Run CFST Collector every 20 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=20min
+AccuracySec=30s
+RandomizedDelaySec=20s
+Persistent=true
+Unit=cfst-collector.service
+
+[Install]
+WantedBy=timers.target

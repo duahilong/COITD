@@ -1,0 +1,23 @@
+[Unit]
+Description=CFST Collector One-shot Runner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=cfst
+Group=cfst
+WorkingDirectory=/opt/cfst-collector
+EnvironmentFile=/opt/cfst-collector/config/config.env
+ExecStart=/usr/bin/bash /opt/cfst-collector/scripts/run_once.sh run-once --json
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/cfst-collector/data /opt/cfst-collector/logs
+
+[Install]
+WantedBy=multi-user.target
