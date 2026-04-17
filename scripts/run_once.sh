@@ -204,13 +204,16 @@ atomic_write() {
 }
 
 log_event() {
+  local ctx
   [[ -n "${LOG_FILE}" ]] || return 0
   mkdir -p "$(dirname "${LOG_FILE}")" 2>/dev/null || true
+  ctx="${3-}"
+  [[ -z "${ctx}" ]] && ctx='{}'
   if [[ -f "${LOG_FILE}" && "${LOG_ROTATE_SIZE_MB}" =~ ^[0-9]+$ ]]; then
     local b m; b="$(wc -c < "${LOG_FILE}" | tr -d '[:space:]')"; m=$((LOG_ROTATE_SIZE_MB * 1024 * 1024))
     [[ "${b}" =~ ^[0-9]+$ ]] && (( b >= m )) && mv -f "${LOG_FILE}" "${LOG_FILE}.1" 2>/dev/null || true
   fi
-  jq -cn --arg ts "$(iso_now)" --arg level "${1}" --arg message "${2}" --arg traceId "${TRACE_ID}" --argjson context "${3:-{}}" \
+  jq -cn --arg ts "$(iso_now)" --arg level "${1}" --arg message "${2}" --arg traceId "${TRACE_ID}" --argjson context "${ctx}" \
     '{ts:$ts,level:$level,message:$message,traceId:$traceId,context:$context}' >> "${LOG_FILE}" 2>/dev/null || true
 }
 
@@ -307,7 +310,10 @@ run_once_cmd() {
   log_event "INFO" "run-once started" "{}"
   rm -f "${RESULT_FILE}" 2>/dev/null || true
   parse_cfst_argv
-  ( cd "${CFST_WORKDIR}" && timeout "${RUN_TIMEOUT_SEC}" "${CFST_BIN}" "${CFST_ARGV[@]}" ) || cfst_rc=$?
+  local cfst_raw_log
+  cfst_raw_log="$(cfst_exec_log_file)"
+  mkdir -p "$(dirname "${cfst_raw_log}")" 2>/dev/null || true
+  ( cd "${CFST_WORKDIR}" && timeout "${RUN_TIMEOUT_SEC}" "${CFST_BIN}" "${CFST_ARGV[@]}" ) >> "${cfst_raw_log}" 2>&1 || cfst_rc=$?
   (( cfst_rc == 124 || cfst_rc == 137 )) && { log_event "ERROR" "CloudflareST execution timeout" "{}"; emit false "EXEC_TIMEOUT" "CloudflareST execution timeout" '{}' "${EXIT_EXEC_TIMEOUT}"; return $?; }
   (( cfst_rc != 0 )) && log_event "WARN" "CloudflareST exited non-zero, parse result anyway" "$(jq -cn --argjson cfstExitCode "${cfst_rc}" '{cfstExitCode:$cfstExitCode}')"
 
@@ -390,6 +396,14 @@ version_cmd() {
   [[ -f "${CONFIG_FILE}" ]] && load_config >/dev/null 2>&1 || true
   emit true "OK" "success" "$(jq -cn --arg scriptVersion "${SCRIPT_VERSION}" --arg schemaVersion "${SCHEMA_VERSION}" --arg configFile "${CONFIG_FILE}" \
     '{scriptVersion:$scriptVersion,schemaVersion:$schemaVersion,configFile:$configFile}')" "${EXIT_OK}"
+}
+
+cfst_exec_log_file() {
+  if [[ -n "${LOG_FILE}" ]]; then
+    printf '%s.cfst' "${LOG_FILE}"
+  else
+    printf '/tmp/cfst-collector.cfst.log'
+  fi
 }
 
 parse_mode() { case "${1}" in --json) OUTPUT_MODE="json";; --plain) OUTPUT_MODE="plain";; *) return 1;; esac; }
