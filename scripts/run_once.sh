@@ -67,7 +67,12 @@ jesc() {
 }
 
 emit() {
-  local ok="$1" code="$2" msg="$3" data="${4:-{}}" rc="$5" ts
+  local ok="$1" code="$2" msg="$3" data rc="$5" ts
+  if [[ $# -ge 4 ]] && [[ -n "${4:-}" ]]; then
+    data="$4"
+  else
+    data='{}'
+  fi
   ts="$(iso_now)"
   if [[ "${OUTPUT_MODE}" == "plain" ]]; then
     printf 'ok=%s code=%s message=%s ts=%s traceId=%s\n' "${ok}" "${code}" "${msg}" "${ts}" "${TRACE_ID}"
@@ -192,7 +197,11 @@ sha256_of() {
   printf 'sha256:unknown'
 }
 
-atomic_write() { local p="$1" c="$2" t="${p}.tmp.$$"; printf '%s\n' "${c}" > "${t}" && mv -f "${t}" "${p}" || { rm -f "${t}" 2>/dev/null || true; return 1; }; }
+atomic_write() {
+  local p="$1" c="$2" t
+  t="${p}.tmp.$$"
+  printf '%s\n' "${c}" > "${t}" && mv -f "${t}" "${p}" || { rm -f "${t}" 2>/dev/null || true; return 1; }
+}
 
 log_event() {
   [[ -n "${LOG_FILE}" ]] || return 0
@@ -230,24 +239,43 @@ ipv6_ok() { [[ "${1}" =~ ^[0-9a-fA-F:]+$ ]]; }
 speed_to_mbps() {
   local s="$1"
   [[ -z "${s}" ]] && { printf '0'; return 0; }
+  if [[ "${s}" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+    # Newer CloudflareST CSV exports speed as numeric MB/s directly.
+    printf '%s' "${s}"
+    return 0
+  fi
   [[ "${s}" =~ ^([0-9]+([.][0-9]+)?)\s*(MB/s|KB/s|GB/s)$ ]] || return 1
   awk -v v="${BASH_REMATCH[1]}" -v u="${BASH_REMATCH[3]}" 'BEGIN{if(u=="KB/s")printf "%.6f",v/1024;else if(u=="MB/s")printf "%.6f",v;else printf "%.6f",v*1024}'
 }
 
 extract_best() {
   [[ -f "${RESULT_FILE}" ]] || return "${EXIT_RESULT_NOT_FOUND}"
-  local line c1 c2 c3 c4 c5 c6 rest ip lat sp cc
+  local line c1 c2 c3 c4 c5 c6 c7 rest ip lat sp cc
   line="$(sed -n '2p' "${RESULT_FILE}" | tr -d '\r')"
   [[ -n "$(trim "${line}")" ]] || return "${EXIT_RESULT_NOT_FOUND}"
-  IFS=',' read -r c1 c2 c3 c4 c5 c6 rest <<< "${line}"
-  ip="$(trim "${c1}")"; lat="$(trim "${c3}")"; sp="$(trim "${c6}")"
+  IFS=',' read -r c1 c2 c3 c4 c5 c6 c7 rest <<< "${line}"
+  ip="$(trim "${c1}")"
 
   if [[ "${IP_VERSION}" == "4" ]]; then ipv4_ok "${ip}" || return "${EXIT_RESULT_PARSE_ERROR}"; else ipv6_ok "${ip}" || return "${EXIT_RESULT_PARSE_ERROR}"; fi
-  [[ "${lat}" =~ ^([0-9]+([.][0-9]+)?)\s*ms$ ]] || return "${EXIT_RESULT_PARSE_ERROR}"
-  BEST_LATENCY_MS="${BASH_REMATCH[1]}"
+  # Compatible with both old CSV (col3: "132 ms") and new CSV (col5: "132.67")
+  lat="$(trim "${c3}")"
+  if [[ "${lat}" =~ ^([0-9]+([.][0-9]+)?)\s*ms$ ]]; then
+    BEST_LATENCY_MS="${BASH_REMATCH[1]}"
+  else
+    lat="$(trim "${c5}")"
+    if [[ "${lat}" =~ ^([0-9]+([.][0-9]+)?)$ ]]; then
+      BEST_LATENCY_MS="${lat}"
+    else
+      return "${EXIT_RESULT_PARSE_ERROR}"
+    fi
+  fi
+
+  sp="$(trim "${c6}")"
   BEST_SPEED_MBPS="$(speed_to_mbps "${sp}")" || return "${EXIT_RESULT_PARSE_ERROR}"
 
-  cc="$(trim "${c4}")"; if [[ ! "${cc}" =~ ^[A-Za-z]{3}$ ]]; then cc="$(trim "${c5}")"; fi
+  cc="$(trim "${c7}")"
+  if [[ ! "${cc}" =~ ^[A-Za-z]{3}$ ]]; then cc="$(trim "${c4}")"; fi
+  if [[ ! "${cc}" =~ ^[A-Za-z]{3}$ ]]; then cc="$(trim "${c5}")"; fi
   [[ "${cc}" =~ ^[A-Za-z]{3}$ ]] && BEST_COLO="${cc^^}" || BEST_COLO=""
   BEST_IP="${ip}"
   BEST_RAW_LINE="${line}"
