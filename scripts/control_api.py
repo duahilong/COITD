@@ -38,6 +38,7 @@ def code_to_http(code: str, ok: bool) -> int:
     mapping = {
         "LOCKED": 409,
         "CONFIG_INVALID": 400,
+        "EXEC_TIMEOUT": 504,
         "RESULT_NOT_FOUND": 424,
         "CF_API_429": 429,
         "CF_API_5XX": 502,
@@ -292,7 +293,16 @@ class AppState:
         merged_env = os.environ.copy()
         if env:
             merged_env.update(env)
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=merged_env)
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=merged_env)
+        except subprocess.TimeoutExpired as exc:
+            return envelope(
+                False,
+                "EXEC_TIMEOUT",
+                f"subprocess execution timed out after {timeout} seconds",
+                {"command": cmd, "timeoutSec": timeout, "stdout": (exc.stdout or "")[-1000:], "stderr": (exc.stderr or "")[-1000:]},
+                new_trace_id("api"),
+            )
         parsed = parse_subprocess_json(proc.stdout)
         if parsed:
             return parsed
@@ -312,7 +322,8 @@ class AppState:
             cmd = [sys.executable, str(script), *args]
         else:
             cmd = [str(script), *args]
-        return self._run_command(cmd, env={"CONFIG_FILE": str(self.cfg.collector_config)})
+        timeout_sec = 1200 if "run-once" in args else 120
+        return self._run_command(cmd, env={"CONFIG_FILE": str(self.cfg.collector_config)}, timeout=timeout_sec)
 
     def _ddns_cmd(self, args: List[str]) -> Dict[str, Any]:
         cmd = [sys.executable, str(self.cfg.ddns_script), *args, "--collector-config", str(self.cfg.collector_config), "--ddns-config", str(self.cfg.ddns_config)]
