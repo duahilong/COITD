@@ -110,6 +110,27 @@ verr_json() {
 
 parse_cfst_argv() { CFST_ARGV=(); [[ -n "${CFST_ARGS}" ]] && read -r -a CFST_ARGV <<< "${CFST_ARGS}"; }
 
+prepare_cfst_argv() {
+  parse_cfst_argv
+  local i=0 t
+  local -a normalized=()
+  while (( i < ${#CFST_ARGV[@]} )); do
+    t="${CFST_ARGV[i]}"
+    if [[ "${t}" == "-o" ]]; then
+      i=$((i+2))
+      continue
+    fi
+    if [[ "${t}" == "-o="* ]]; then
+      i=$((i+1))
+      continue
+    fi
+    normalized+=("${t}")
+    i=$((i+1))
+  done
+  normalized+=("-o" "${RESULT_FILE}")
+  CFST_ARGV=("${normalized[@]}")
+}
+
 has_opt() {
   local f="$1" t
   for t in "${CFST_ARGV[@]}"; do [[ "${t}" == "${f}" || "${t}" == "${f}="* ]] && return 0; done
@@ -177,15 +198,12 @@ validate_config() {
   [[ "${HISTORY_MAX_LINES}" =~ ^[0-9]+$ ]] && (( HISTORY_MAX_LINES >= 1 )) || add_verr "HISTORY_MAX_LINES must be >= 1"
   [[ "${LOG_ROTATE_SIZE_MB}" =~ ^[0-9]+$ ]] && (( LOG_ROTATE_SIZE_MB >= 1 )) || add_verr "LOG_ROTATE_SIZE_MB must be >= 1"
 
-  [[ ${#CFST_ARGV[@]} -gt 0 ]] || add_verr "CFST_ARGS cannot be empty"
-  has_opt "-httping" || add_verr "CFST_ARGS must contain -httping"
-  has_opt "-dd" && add_verr "CFST_ARGS must not contain -dd in phase 1"
-  has_opt "-cfcolo" && ! has_opt "-httping" && add_verr "-cfcolo requires -httping"
-  local o u; o="$(opt_val "-o")"; u="$(opt_val "-url")"
-  [[ -n "${o}" ]] || add_verr "CFST_ARGS must contain -o <RESULT_FILE>"
-  [[ "${o}" == "${RESULT_FILE}" ]] || add_verr "CFST_ARGS -o must equal RESULT_FILE"
-  [[ -n "${u}" ]] || add_verr "CFST_ARGS must contain -url"
-  [[ "${u}" =~ ^https?://[^[:space:]]+$ ]] || add_verr "CFST_ARGS -url must be valid http/https URL"
+  local u
+  u="$(opt_val "-url")"
+  if has_opt "-url"; then
+    [[ -n "${u}" ]] || add_verr "CFST_ARGS -url value cannot be empty"
+    [[ "${u}" =~ ^https?://[^[:space:]]+$ ]] || add_verr "CFST_ARGS -url must be valid http/https URL"
+  fi
 
   [[ ${#VALIDATION_ERRORS[@]} -eq 0 ]]
 }
@@ -309,7 +327,7 @@ run_once_cmd() {
 
   log_event "INFO" "run-once started" "{}"
   rm -f "${RESULT_FILE}" 2>/dev/null || true
-  parse_cfst_argv
+  prepare_cfst_argv
   local cfst_raw_log
   cfst_raw_log="$(cfst_exec_log_file)"
   mkdir -p "$(dirname "${cfst_raw_log}")" 2>/dev/null || true

@@ -72,8 +72,9 @@ PRIMARY_TEST_URL="https://speed.example.com/cfst-20m.bin"
 FALLBACK_TEST_URLS="https://speed-bak1.example.com/cfst-20m.bin,https://speed-bak2.example.com/cfst-20m.bin"
 COLO_ALLOWLIST="HKG,SJC,LAX"
 
-# CFST 参数基线（第一阶段：地区 + 下载测速）
-CFST_ARGS="-httping -cfcolo HKG,SJC,LAX -url https://speed.example.com/cfst-20m.bin -dn 20 -dt 10 -tl 250 -sl 1 -o /opt/cfst-collector/data/result.csv"
+# CFST 参数基线（第一阶段：遵循官方脚本，参数按需组合）
+CFST_ARGS="-dn 20 -dt 10 -tl 250 -sl 1"
+# 可选：CFST_ARGS="-httping -cfcolo HKG,SJC,LAX -url https://speed.example.com/cfst-20m.bin -dn 20 -dt 10 -tl 250 -sl 1"
 
 # 运行控制
 LOCK_FILE="/opt/cfst-collector/data/run.lock"
@@ -94,13 +95,11 @@ SCHEMA_VERSION="1.0"
 1. `CFST_BIN` 存在且可执行。
 2. `CFST_WORKDIR` 与各输出文件父目录可写。
 3. `RUN_TIMEOUT_SEC` 在 `60~3600`。
-4. `CFST_ARGS` 必须包含 `-o <RESULT_FILE>`。
-5. `CFST_ARGS` 必须包含 `-httping`。
-6. 若配置了 `-cfcolo`，必须同时有 `-httping`。
-7. `CFST_ARGS` 禁止出现 `-dd`（第一阶段必须做下载测速）。
-8. `-url` 必须为合法 `http/https` 且非空。
-9. 仅允许单一 IP 类型，`IP_VERSION=4|6` 必填。
-10. 调度建议间隔不低于 10 分钟。
+4. 执行时脚本自动补充 `-o <RESULT_FILE>`，`CFST_ARGS` 可不显式包含 `-o`。
+5. 不强制 `-httping`、`-url`、`-dd`，按网络策略自由组合。
+6. 若显式设置 `-url`，其值必须为合法 `http/https` URL。
+7. 仅允许单一 IP 类型，`IP_VERSION=4|6` 必填。
+8. 调度建议间隔不低于 10 分钟。
 
 ---
 
@@ -259,7 +258,7 @@ run_once.sh version [--json|--plain]
 
 ## 7.1 地区优选
 1. 使用 `-cfcolo`（IATA 码，如 `HKG,SJC,LAX`）。
-2. `-cfcolo` 必须配合 `-httping`。
+2. 若开启 `-cfcolo`，通常与 `-httping` 搭配使用以保证筛选语义一致。
 3. 建议先小范围白名单，避免扫描面过大。
 
 参考起步：
@@ -267,7 +266,7 @@ run_once.sh version [--json|--plain]
 2. 电信/联通：`SJC,LAX`
 
 ## 7.2 下载测速
-1. 第一阶段必须启用下载测速，禁止 `-dd`。
+1. 默认建议启用下载测速；若显式使用 `-dd` 则退化为仅延迟筛选（按业务策略选择）。
 2. `-dn` 建议 `10~30`。
 3. `-dt` 建议 `8~15` 秒。
 4. `-sl` 初期建议保守（如 `1 MB/s`）。
@@ -282,6 +281,14 @@ run_once.sh version [--json|--plain]
 ## 7.4 Linux 参数模板
 
 ```bash
+CloudflareST \
+  -dn 20 \
+  -dt 10 \
+  -tl 250 \
+  -sl 1 \
+  -o /opt/cfst-collector/data/result.csv
+
+# 可选（HTTPing + 地区筛选）
 CloudflareST \
   -httping \
   -cfcolo HKG,SJC,LAX \
