@@ -1,0 +1,32 @@
+{
+  "cfst_path": "/opt/cfst-collector/bin/cfst",
+  "workdir": "/root/coitd",
+  "result_file": "result.csv",
+  "best_ip_file": "best_ip.txt",
+  "best_ip_count": 1,
+  "strict_known_options": true,
+  "options": {
+    "n": 200,
+    "t": 4,
+    "dn": 10,
+    "dt": 10,
+    "tp": 443,
+    "url": "https://cf.xiu2.xyz/url",
+    "httping": false,
+    "httping-code": 0,
+    "cfcolo": "",
+    "tl": 200,
+    "tll": 0,
+    "tlr": 1.0,
+    "sl": 0,
+    "p": 0,
+    "f": "/opt/cfst-collector/bin/ip.txt",
+    "ip": "",
+    "o": null,
+    "dd": false,
+    "allip": false,
+    "debug": false,
+    "v": false,
+    "h": false
+  }
+}

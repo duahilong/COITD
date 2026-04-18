@@ -1,0 +1,16 @@
+{
+  "cfst_path": "./cfst",
+  "workdir": ".",
+  "result_file": "result.csv",
+  "best_ip_file": "best_ip.txt",
+  "options": {
+    "n": 200,
+    "t": 4,
+    "dn": 10,
+    "dt": 10,
+    "tl": 200,
+    "p": 0,
+    "url": "https://cf.xiu2.xyz/url"
+  }
+}
+

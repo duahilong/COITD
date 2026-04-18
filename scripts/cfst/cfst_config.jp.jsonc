@@ -1,0 +1,89 @@
+﻿{
+  // ===== 可执行文件与运行目录 =====
+  // CFST 可执行文件路径（Linux 建议绝对路径）
+  "cfst_path": "/opt/cfst-collector/bin/cfst",
+
+  // CFST 的运行目录（会在这里生成结果文件）
+  "workdir": "/root/coitd",
+
+  // CFST 结果 CSV 文件名（相对 workdir）
+  "result_file": "result_jp.csv",
+
+  // 启动器会把优选出的第一名 IP 写入该文件（相对 workdir）
+  "best_ip_file": "best_ip_jp.txt",
+
+  // 需要输出多少个优选 IP（例如 1/3/5/10）
+  "best_ip_count": 1,
+
+  // 是否严格校验参数名（建议 true，防止写错参数）
+  "strict_known_options": true,
+
+  // ===== CFST 参数区（与 cfst -h 一一对应） =====
+  "options": {
+    // -n: 延迟测速线程；并发越高越快，但更容易触发风控
+    "n": 100,
+
+    // -t: 单个 IP 的延迟测速次数
+    "t": 4,
+
+    // -dn: 下载测速数量（从低延迟里取多少个做下载测速）
+    "dn": 10,
+
+    // -dt: 单个 IP 的下载测速时长（秒）
+    "dt": 20,
+
+    // -tp: 测速端口
+    "tp": 443,
+
+    // -url: 测速地址（建议使用你可控、稳定可访问的地址）
+    "url": "https://cf.xiu2.xyz/url",
+
+    // -httping: 是否开启 HTTPing 模式（cfcolo 过滤仅在该模式生效）
+    "httping": true,
+
+    // -httping-code: HTTPing 期望状态码；0 表示使用默认 200/301/302
+    "httping-code": 0,
+
+    // -cfcolo: 指定地区码过滤（日本常用: NRT,HND,KIX,NGO,FUK,OKA,CTS）
+    "cfcolo": "NRT,HND,KIX,NGO,FUK,OKA",
+
+    // -tl: 平均延迟上限（ms）
+    "tl": 100,
+
+    // -tll: 平均延迟下限（ms）
+    "tll": 0,
+
+    // -tlr: 丢包率上限（0~1）
+    "tlr": 0.5,
+
+    // -sl: 下载速度下限（MB/s）
+    "sl": 0,
+
+    // -p: 终端显示结果数量；0 表示不在终端打印结果
+    "p": 0,
+
+    // -f: IP 段文件路径（这是你要“特定 IP 文件”的关键参数）
+    "f": "/root/coitd/ip_jp_source.txt",
+
+    // -ip: 直接内联 IP/CIDR（不为空时可替代 -f）
+    "ip": "",
+
+    // -o: 输出文件；null 表示由启动器自动用 result_file 填充
+    "o": null,
+
+    // -dd: 是否禁用下载测速（true=仅按延迟排序，不推荐最终优选）
+    "dd": false,
+
+    // -allip: IPv4 是否测试网段内所有 IP（true 会显著增加耗时）
+    "allip": false,
+
+    // -debug: 调试日志开关
+    "debug": false,
+
+    // -v: 打印版本并检查更新（用于运维检查）
+    "v": false,
+
+    // -h: 打印帮助（一般保持 false）
+    "h": false
+  }
+}
