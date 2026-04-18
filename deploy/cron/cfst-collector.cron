@@ -1,1 +1,0 @@
-*/20 * * * * /usr/bin/bash /opt/cfst-collector/scripts/run_once.sh run-once --json >> /opt/cfst-collector/logs/cron.log 2>&1
