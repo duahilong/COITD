@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CFST Web Console</title>
+  <style>
+    :root {
+      --bg-0: #0f172a;
+      --bg-1: #111827;
+      --bg-2: #1f2937;
+      --card: rgba(15, 23, 42, 0.76);
+      --line: rgba(148, 163, 184, 0.22);
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --err: #ef4444;
+      --accent: #06b6d4;
+      --accent-2: #f97316;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% -10%, rgba(6, 182, 212, 0.38), transparent 36%),
+        radial-gradient(circle at 85% 0%, rgba(249, 115, 22, 0.26), transparent 32%),
+        linear-gradient(145deg, var(--bg-0), var(--bg-1) 55%, var(--bg-2));
+      min-height: 100vh;
+    }
+
+    .shell {
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 22px 16px 36px;
+    }
+
+    .hero {
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(30, 41, 59, 0.72));
+      border-radius: 18px;
+      padding: 20px 18px;
+      box-shadow: 0 20px 45px rgba(2, 6, 23, 0.48);
+      position: relative;
+      overflow: hidden;
+      animation: rise .4s ease both;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -15% -55% auto;
+      width: 280px;
+      height: 280px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.22), transparent 65%);
+      pointer-events: none;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(24px, 2.6vw, 38px);
+      letter-spacing: 0.02em;
+    }
+
+    .sub {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .grid {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--card);
+      border-radius: 14px;
+      padding: 14px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 12px 24px rgba(2, 6, 23, 0.35);
+      animation: rise .45s ease both;
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #cbd5e1;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    label {
+      font-size: 12px;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 4px;
+      letter-spacing: .04em;
+    }
+
+    .field {
+      flex: 1 1 180px;
+    }
+
+    select, input {
+      width: 100%;
+      border: 1px solid rgba(148, 163, 184, 0.32);
+      background: rgba(15, 23, 42, 0.92);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: .2s ease;
+      white-space: nowrap;
+    }
+
+    .btn:disabled {
+      opacity: .48;
+      cursor: not-allowed;
+    }
+
+    .btn-main {
+      color: #00131a;
+      background: linear-gradient(120deg, #22d3ee, #06b6d4);
+      box-shadow: 0 8px 22px rgba(6, 182, 212, 0.32);
+    }
+
+    .btn-main:hover { transform: translateY(-1px); }
+
+    .btn-stop {
+      color: #fff5f5;
+      background: linear-gradient(120deg, #fb7185, #ef4444);
+      box-shadow: 0 8px 22px rgba(239, 68, 68, 0.32);
+    }
+
+    .btn-ghost {
+      color: #cbd5e1;
+      border-color: rgba(148, 163, 184, 0.35);
+      background: rgba(15, 23, 42, 0.45);
+    }
+
+    .meta {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(140px, 1fr));
+      gap: 8px;
+    }
+
+    .kpi {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 10px;
+      padding: 8px;
+      background: rgba(15, 23, 42, 0.62);
+    }
+
+    .kpi small {
+      color: var(--muted);
+      display: block;
+      font-size: 11px;
+    }
+
+    .kpi strong {
+      font-family: "JetBrains Mono", "Cascadia Mono", monospace;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .status {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(15, 23, 42, 0.6);
+    }
+
+    .s-running { color: #38bdf8; border-color: rgba(56, 189, 248, 0.6); }
+    .s-success { color: #4ade80; border-color: rgba(74, 222, 128, 0.6); }
+    .s-failed { color: #f87171; border-color: rgba(248, 113, 113, 0.6); }
+    .s-stopped, .s-stopping { color: #f59e0b; border-color: rgba(245, 158, 11, 0.6); }
+
+    .log {
+      margin-top: 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: #020617;
+      height: 360px;
+      overflow: auto;
+      padding: 10px;
+      font-family: "JetBrains Mono", "Cascadia Mono", monospace;
+      font-size: 12px;
+      line-height: 1.42;
+      white-space: pre-wrap;
+      color: #dbeafe;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px 7px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+      word-break: break-word;
+    }
+
+    tbody tr:hover {
+      background: rgba(6, 182, 212, 0.1);
+      cursor: pointer;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .feedback {
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 13px;
+      margin: 8px 0;
+      word-break: break-word;
+    }
+
+    .fb-ok {
+      border-color: rgba(74, 222, 128, 0.55);
+      color: #bbf7d0;
+      background: rgba(22, 101, 52, 0.24);
+    }
+
+    .fb-err {
+      border-color: rgba(248, 113, 113, 0.55);
+      color: #fecaca;
+      background: rgba(127, 29, 29, 0.28);
+    }
+
+    .chip {
+      display: inline-block;
+      padding: 2px 7px;
+      border: 1px solid rgba(249, 115, 22, 0.45);
+      color: #fdba74;
+      border-radius: 999px;
+      font-size: 11px;
+      margin-left: 6px;
+    }
+
+    @keyframes rise {
+      from { transform: translateY(6px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (max-width: 980px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .meta {
+        grid-template-columns: 1fr 1fr;
+      }
+      .log {
+        height: 280px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <h1>CFST Web Console</h1>
+      <p class="sub">控制任务启动/停止、实时刷新日志、读取结构化结果。这个页面直接调用你已经验证过的控制接口。</p>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Run Control</h2>
+        <div class="row">
+          <div class="field">
+            <label>配置文件</label>
+            <select id="configSelect"></select>
+          </div>
+          <div class="field">
+            <label>任务标签</label>
+            <input id="labelInput" placeholder="例如: web-manual">
+          </div>
+          <div class="field" style="flex:0 0 auto;">
+            <label>&nbsp;</label>
+            <button id="startBtn" class="btn btn-main">启动任务</button>
+          </div>
+          <div class="field" style="flex:0 0 auto;">
+            <label>&nbsp;</label>
+            <button id="stopBtn" class="btn btn-stop">停止任务</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <span id="statusBadge" class="status">idle</span>
+          <button id="refreshBtn" class="btn btn-ghost">手动刷新</button>
+          <button id="followBtn" class="btn btn-ghost">日志自动刷新: 开</button>
+          <span class="chip">Web MVP</span>
+          <span class="chip">单任务模式: 开</span>
+        </div>
+        <div class="feedback" id="runFeedback">当前策略：同一时刻只允许一个任务运行。定时触发遇到运行中任务会自动跳过。</div>
+
+        <div class="meta">
+          <div class="kpi"><small>run_id</small><strong id="runIdText">-</strong></div>
+          <div class="kpi"><small>pid</small><strong id="pidText">-</strong></div>
+          <div class="kpi"><small>exit_code</small><strong id="exitCodeText">-</strong></div>
+          <div class="kpi"><small>best_ip</small><strong id="bestIpText">-</strong></div>
+          <div class="kpi"><small>duration</small><strong id="durationText">-</strong></div>
+          <div class="kpi"><small>result_file</small><strong id="resultFileText">-</strong></div>
+        </div>
+
+        <div class="log" id="logBox">等待任务输出...</div>
+      </article>
+
+      <article class="card">
+        <h2>Schedule & History</h2>
+        <div class="row">
+          <div class="field">
+            <label>定时模式</label>
+            <select id="scheduleMode">
+              <option value="every_minute">每分钟运行一次</option>
+              <option value="half_hourly" selected>每半小时运行一次</option>
+              <option value="hourly">每一小时运行一次</option>
+              <option value="daily">每天运行一次</option>
+              <option value="every_n_hours">每几个小时运行一次</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>每天时间 (HH:MM)</label>
+            <input id="dailyTime" type="time" value="02:00">
+          </div>
+          <div class="field">
+            <label>每 N 小时</label>
+            <input id="hourInterval" type="number" min="2" max="23" value="2">
+          </div>
+          <div class="field">
+            <label>分钟点 (0-59)</label>
+            <input id="minuteInput" type="number" min="0" max="59" value="0">
+          </div>
+        </div>
+        <div class="row">
+          <button id="scheduleApplyBtn" class="btn btn-main">确定并写入定时任务</button>
+          <button id="scheduleClearBtn" class="btn btn-stop">清除定时任务</button>
+        </div>
+        <div class="feedback" id="scheduleFeedback">定时任务尚未设置</div>
+        <div class="hint" id="scheduleSummary">未配置定时任务</div>
+        <div class="hint" id="schedulePreview">当前选择：每半小时运行一次</div>
+        <div class="log" style="height:100px;" id="scheduleSetupLogBox">设置日志暂无内容</div>
+        <div class="log" style="height:120px;" id="scheduleRunLogBox">执行日志暂无内容</div>
+        <p class="hint">点击历史行可快速切换到对应 run_id。</p>
+        <table>
+          <thead>
+            <tr>
+              <th>run_id</th>
+              <th>status</th>
+              <th>exit</th>
+              <th>created_at</th>
+            </tr>
+          </thead>
+          <tbody id="runsBody"></tbody>
+        </table>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const ui = {
+      configSelect: document.getElementById('configSelect'),
+      labelInput: document.getElementById('labelInput'),
+      startBtn: document.getElementById('startBtn'),
+      stopBtn: document.getElementById('stopBtn'),
+      refreshBtn: document.getElementById('refreshBtn'),
+      followBtn: document.getElementById('followBtn'),
+      statusBadge: document.getElementById('statusBadge'),
+      runIdText: document.getElementById('runIdText'),
+      pidText: document.getElementById('pidText'),
+      exitCodeText: document.getElementById('exitCodeText'),
+      bestIpText: document.getElementById('bestIpText'),
+      durationText: document.getElementById('durationText'),
+      resultFileText: document.getElementById('resultFileText'),
+      runFeedback: document.getElementById('runFeedback'),
+      logBox: document.getElementById('logBox'),
+      runsBody: document.getElementById('runsBody'),
+      scheduleMode: document.getElementById('scheduleMode'),
+      dailyTime: document.getElementById('dailyTime'),
+      hourInterval: document.getElementById('hourInterval'),
+      minuteInput: document.getElementById('minuteInput'),
+      scheduleApplyBtn: document.getElementById('scheduleApplyBtn'),
+      scheduleClearBtn: document.getElementById('scheduleClearBtn'),
+      scheduleFeedback: document.getElementById('scheduleFeedback'),
+      scheduleSummary: document.getElementById('scheduleSummary'),
+      schedulePreview: document.getElementById('schedulePreview'),
+      scheduleSetupLogBox: document.getElementById('scheduleSetupLogBox'),
+      scheduleRunLogBox: document.getElementById('scheduleRunLogBox')
+    };
+
+    const state = {
+      runId: '',
+      autoFollow: true,
+      pollTimer: null,
+      runStatus: 'idle'
+    };
+
+    async function apiGet(path) {
+      const res = await fetch(path);
+      const data = await res.json();
+      if (!res.ok || data.ok === false) {
+        const err = new Error(data.message || data.error || `HTTP ${res.status}`);
+        err.payload = data;
+        throw err;
+      }
+      return data;
+    }
+
+    async function apiPost(path, payload) {
+      const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload || {})
+      });
+      const data = await res.json();
+      if (!res.ok || data.ok === false) {
+        const err = new Error(data.message || data.error || `HTTP ${res.status}`);
+        err.payload = data;
+        throw err;
+      }
+      return data;
+    }
+
+    function setRunFeedback(message, type = 'ok') {
+      ui.runFeedback.className = `feedback ${type === 'err' ? 'fb-err' : 'fb-ok'}`;
+      ui.runFeedback.textContent = message;
+    }
+
+    function setStatus(status) {
+      const cls = `status s-${status || 'idle'}`;
+      ui.statusBadge.className = cls;
+      ui.statusBadge.textContent = status || 'idle';
+    }
+
+    function setRunId(runId) {
+      state.runId = runId || '';
+      ui.runIdText.textContent = state.runId || '-';
+    }
+
+    function renderStatus(data) {
+      state.runStatus = data.status || 'unknown';
+      setStatus(state.runStatus);
+      ui.pidText.textContent = data.pid ?? '-';
+      ui.exitCodeText.textContent = data.exit_code ?? '-';
+      const summary = data.summary || {};
+      ui.bestIpText.textContent = summary.best_ip || '-';
+      ui.durationText.textContent = summary.duration_seconds != null ? `${summary.duration_seconds}s` : '-';
+      ui.resultFileText.textContent = summary.result_file || '-';
+      if (state.runStatus === 'running') {
+        setRunFeedback(`任务运行中：${state.runId}`);
+      } else if (state.runStatus === 'success') {
+        setRunFeedback(`任务执行成功：${state.runId}`);
+      } else if (state.runStatus === 'failed') {
+        setRunFeedback(`任务执行失败：${state.runId}`, 'err');
+      } else if (state.runStatus === 'stopped') {
+        setRunFeedback(`任务已停止：${state.runId}`);
+      }
+    }
+
+    function renderLogs(data) {
+      const lines = Array.isArray(data.lines) ? data.lines : [];
+      ui.logBox.textContent = lines.length ? lines.join('\n') : '(暂无日志)';
+      ui.logBox.scrollTop = ui.logBox.scrollHeight;
+    }
+
+    function renderRuns(data) {
+      const runs = Array.isArray(data.runs) ? data.runs : [];
+      ui.runsBody.innerHTML = '';
+      runs.forEach((r) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.run_id || '-'}</td>
+          <td>${r.status || '-'}</td>
+          <td>${r.exit_code == null ? '-' : r.exit_code}</td>
+          <td>${r.created_at || '-'}</td>
+        `;
+        tr.addEventListener('click', () => {
+          setRunId(r.run_id || '');
+          refreshAll();
+        });
+        ui.runsBody.appendChild(tr);
+      });
+
+      if (!runs.length) {
+        return;
+      }
+      const topRunId = runs[0].run_id || '';
+      const hasCurrent = runs.some(r => (r.run_id || '') === state.runId);
+
+      if (!state.runId || !hasCurrent) {
+        setRunId(topRunId);
+        return;
+      }
+
+      // 自动刷新开启时，默认跟随最新任务（尤其是定时任务触发的新 run）。
+      if (state.autoFollow && topRunId && topRunId !== state.runId) {
+        setRunId(topRunId);
+      }
+    }
+
+    async function loadConfigs() {
+      const data = await apiGet('/api/configs');
+      const configs = data.configs || [];
+      ui.configSelect.innerHTML = '';
+      configs.forEach((c) => {
+        const option = document.createElement('option');
+        option.value = c;
+        option.textContent = c;
+        ui.configSelect.appendChild(option);
+      });
+      const preferred = configs.find(c => c.endsWith('cfst_config.full.json'));
+      if (preferred) ui.configSelect.value = preferred;
+    }
+
+    async function refreshRuns() {
+      const data = await apiGet('/api/list?limit=12');
+      renderRuns(data);
+    }
+
+    async function refreshStatus() {
+      if (!state.runId) return;
+      try {
+        const data = await apiGet(`/api/status?run_id=${encodeURIComponent(state.runId)}`);
+        renderStatus(data);
+      } catch (err) {
+        const payload = err.payload || {};
+        if (payload.error_code === 'run_not_found') {
+          setRunId('');
+          await refreshRuns();
+          return;
+        }
+        throw err;
+      }
+    }
+
+    async function refreshLogs() {
+      if (!state.runId) return;
+      try {
+        const data = await apiGet(`/api/logs?run_id=${encodeURIComponent(state.runId)}&lines=140`);
+        renderLogs(data);
+      } catch (err) {
+        const payload = err.payload || {};
+        if (payload.error_code === 'run_not_found') {
+          return;
+        }
+        throw err;
+      }
+    }
+
+    async function refreshAll() {
+      try {
+        await refreshRuns();
+        await refreshStatus();
+        await refreshLogs();
+      } catch (err) {
+        ui.logBox.textContent = `刷新失败: ${err.message}`;
+      }
+    }
+
+    async function startRun() {
+      try {
+        ui.startBtn.disabled = true;
+        const payload = {
+          config: ui.configSelect.value,
+          label: ui.labelInput.value.trim()
+        };
+        const data = await apiPost('/api/start', payload);
+        setRunId(data.run_id || '');
+        setRunFeedback(`任务已启动：${data.run_id || '-'}`);
+        await refreshAll();
+      } catch (err) {
+        const payload = err.payload || {};
+        if (payload.error_code === 'active_run_exists') {
+          const activeRunId = payload.active_run_id || '';
+          setRunFeedback(`已有任务运行中（${activeRunId}），本次启动被拒绝。`, 'err');
+          if (activeRunId) {
+            setRunId(activeRunId);
+            await refreshAll();
+          }
+        } else if (payload.error_code === 'start_lock_busy') {
+          setRunFeedback('启动请求处理中，请稍后重试（启动锁占用）。', 'err');
+          await refreshAll();
+        } else {
+          setRunFeedback(`启动失败：${err.message}`, 'err');
+        }
+      } finally {
+        ui.startBtn.disabled = false;
+      }
+    }
+
+    async function stopRun() {
+      if (!state.runId) {
+        alert('请先选择一个 run_id');
+        return;
+      }
+      try {
+        await apiPost('/api/stop', { run_id: state.runId, timeout_sec: 10 });
+        await refreshAll();
+      } catch (err) {
+        alert(`停止失败: ${err.message}`);
+      }
+    }
+
+    function toggleScheduleFields() {
+      const mode = ui.scheduleMode.value;
+      ui.dailyTime.disabled = mode !== 'daily';
+      ui.hourInterval.disabled = mode !== 'every_n_hours';
+      ui.minuteInput.disabled = mode === 'half_hourly' || mode === 'daily' || mode === 'every_minute';
+      renderSchedulePreview();
+    }
+
+    function modeLabel(mode) {
+      const map = {
+        every_minute: '每分钟运行一次',
+        half_hourly: '每半小时运行一次',
+        hourly: '每一小时运行一次',
+        daily: '每天运行一次',
+        every_n_hours: '每几个小时运行一次'
+      };
+      return map[mode] || mode;
+    }
+
+    function renderSchedulePreview() {
+      const mode = ui.scheduleMode.value;
+      let text = `当前选择：${modeLabel(mode)}`;
+      if (mode === 'daily') {
+        text += `，执行时间 ${ui.dailyTime.value || '02:00'}`;
+      } else if (mode === 'hourly') {
+        text += `，每小时第 ${Number(ui.minuteInput.value || 0)} 分钟执行`;
+      } else if (mode === 'every_n_hours') {
+        text += `，每 ${Number(ui.hourInterval.value || 2)} 小时在第 ${Number(ui.minuteInput.value || 0)} 分钟执行`;
+      }
+      ui.schedulePreview.textContent = text;
+    }
+
+    function setScheduleFeedback(message, type = 'ok') {
+      ui.scheduleFeedback.className = `feedback ${type === 'err' ? 'fb-err' : 'fb-ok'}`;
+      ui.scheduleFeedback.textContent = message;
+    }
+
+    function renderScheduleStatus(data) {
+      if (!data || !data.ok) {
+        ui.scheduleSummary.textContent = '定时任务状态读取失败';
+        setScheduleFeedback('无法读取定时任务状态', 'err');
+        return;
+      }
+      if (!data.enabled) {
+        ui.scheduleSummary.textContent = '未配置定时任务';
+        setScheduleFeedback('当前未设置任何定时任务');
+        return;
+      }
+      const sch = data.schedule || {};
+      const mode = sch.mode || '-';
+      const modeText = sch.mode_label || modeLabel(mode);
+      const expr = sch.cron_expr || data.crontab_line || '-';
+      const cfg = sch.config || '-';
+      ui.scheduleSummary.textContent = `已启用: ${modeText} | ${expr} | ${cfg}`;
+      if (data.crontab_line) {
+        setScheduleFeedback(`设置成功并生效：${data.crontab_line}`);
+      }
+    }
+
+    async function refreshScheduleStatus() {
+      try {
+        const data = await apiGet('/api/schedule/status');
+        renderScheduleStatus(data);
+      } catch (err) {
+        ui.scheduleSummary.textContent = `状态失败: ${err.message}`;
+        setScheduleFeedback(`状态刷新失败: ${err.message}`, 'err');
+      }
+    }
+
+    async function refreshScheduleLogs() {
+      try {
+        const data = await apiGet('/api/schedule/logs?lines=80');
+        const setupLines = data.setup_lines || [];
+        const runLines = data.run_lines || [];
+        ui.scheduleSetupLogBox.textContent = setupLines.length ? setupLines.join('\n') : '设置日志暂无内容';
+        ui.scheduleRunLogBox.textContent = runLines.length ? runLines.join('\n') : '执行日志暂无内容';
+        ui.scheduleSetupLogBox.scrollTop = ui.scheduleSetupLogBox.scrollHeight;
+        ui.scheduleRunLogBox.scrollTop = ui.scheduleRunLogBox.scrollHeight;
+      } catch (err) {
+        ui.scheduleSetupLogBox.textContent = `读取设置日志失败: ${err.message}`;
+      }
+    }
+
+    async function applySchedule() {
+      try {
+        ui.scheduleApplyBtn.disabled = true;
+        const payload = {
+          config: ui.configSelect.value,
+          mode: ui.scheduleMode.value,
+          daily_time: ui.dailyTime.value || '02:00',
+          hour_interval: Number(ui.hourInterval.value || 2),
+          minute: Number(ui.minuteInput.value || 0),
+          label: 'web-schedule'
+        };
+        const data = await apiPost('/api/schedule/setup', payload);
+        renderScheduleStatus({ ok: true, enabled: true, schedule: data, crontab_line: data.crontab_line });
+        setScheduleFeedback(`${data.message || '定时任务已设置'} 规则：${data.cron_expr}`);
+        await refreshScheduleLogs();
+      } catch (err) {
+        setScheduleFeedback(`设置失败：${err.message}`, 'err');
+        await refreshScheduleLogs();
+      } finally {
+        ui.scheduleApplyBtn.disabled = false;
+      }
+    }
+
+    async function clearSchedule() {
+      try {
+        ui.scheduleClearBtn.disabled = true;
+        const data = await apiPost('/api/schedule/clear', {});
+        setScheduleFeedback(data.message || '定时任务已清除');
+        await refreshScheduleStatus();
+        await refreshScheduleLogs();
+      } catch (err) {
+        setScheduleFeedback(`清除失败：${err.message}`, 'err');
+      } finally {
+        ui.scheduleClearBtn.disabled = false;
+      }
+    }
+
+    function setAutoFollow(enabled) {
+      state.autoFollow = !!enabled;
+      ui.followBtn.textContent = `日志自动刷新: ${enabled ? '开' : '关'}`;
+      if (state.pollTimer) clearInterval(state.pollTimer);
+      state.pollTimer = setInterval(async () => {
+        if (!state.autoFollow) return;
+        try {
+          await refreshRuns();
+          await refreshStatus();
+          await refreshLogs();
+          await refreshScheduleStatus();
+          await refreshScheduleLogs();
+        } catch (_) {}
+      }, 3000);
+    }
+
+    ui.startBtn.addEventListener('click', startRun);
+    ui.stopBtn.addEventListener('click', stopRun);
+    ui.refreshBtn.addEventListener('click', refreshAll);
+    ui.followBtn.addEventListener('click', () => setAutoFollow(!state.autoFollow));
+    ui.scheduleMode.addEventListener('change', toggleScheduleFields);
+    ui.dailyTime.addEventListener('input', renderSchedulePreview);
+    ui.hourInterval.addEventListener('input', renderSchedulePreview);
+    ui.minuteInput.addEventListener('input', renderSchedulePreview);
+    ui.scheduleApplyBtn.addEventListener('click', applySchedule);
+    ui.scheduleClearBtn.addEventListener('click', clearSchedule);
+
+    (async function boot() {
+      try {
+        await loadConfigs();
+        toggleScheduleFields();
+        await refreshScheduleStatus();
+        await refreshScheduleLogs();
+        await refreshRuns();
+        await refreshAll();
+        setAutoFollow(true);
+      } catch (err) {
+        ui.logBox.textContent = `初始化失败: ${err.message}`;
+      }
+    })();
+  </script>
+</body>
+</html>

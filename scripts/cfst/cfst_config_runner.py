@@ -3,9 +3,11 @@
 
 import argparse
 import csv
+import datetime as dt
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -42,6 +44,16 @@ KNOWN_KEYS = {
 KEY_ALIASES = {
     "httping_code": "httping-code",
 }
+
+
+def now_iso() -> str:
+    return dt.datetime.now(dt.timezone.utc).astimezone().isoformat(timespec="seconds")
+
+
+def write_json_file(path: Path, data: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+    path.write_text(payload, encoding="utf-8")
 
 
 def load_config(config_path: Path) -> Dict[str, Any]:
@@ -199,10 +211,33 @@ def main() -> int:
         default="scripts/cfst/cfst_config.full.json",
         help="配置文件路径，默认: scripts/cfst/cfst_config.full.json",
     )
+    parser.add_argument(
+        "--summary-json",
+        default="",
+        help="将执行结果摘要写入 JSON 文件（用于 Web/API 对接）",
+    )
+    parser.add_argument(
+        "--print-summary-json",
+        action="store_true",
+        help="在 stdout 打印一行 SUMMARY_JSON=...（便于上层进程采集）",
+    )
     args = parser.parse_args()
 
     config_path = Path(args.config).resolve()
     base_dir = config_path.parent
+    started_at = now_iso()
+    started_mono = time.monotonic()
+    summary_path = Path(args.summary_json).resolve() if args.summary_json else None
+
+    summary: Dict[str, Any] = {
+        "status": "failed",
+        "exit_code": 1,
+        "config_path": str(config_path),
+        "started_at": started_at,
+    }
+    workdir: Path | None = None
+    result_path: Path | None = None
+    best_ip_path: Path | None = None
 
     try:
         config = load_config(config_path)
@@ -235,9 +270,52 @@ def main() -> int:
             best_ip_path.write_text("\n".join(top_ips) + "\n", encoding="utf-8")
             print(f"[INFO] 已写入最佳 IP 文件: {best_ip_path}")
 
+        summary = {
+            "status": "success",
+            "exit_code": 0,
+            "config_path": str(config_path),
+            "started_at": started_at,
+            "finished_at": now_iso(),
+            "duration_seconds": round(time.monotonic() - started_mono, 3),
+            "workdir": str(workdir),
+            "result_file": str(result_path),
+            "best_ip_count": best_ip_count,
+            "best_ip": top_ips[0],
+            "best_ip_list": top_ips,
+            "best_ip_file": str(best_ip_path) if best_ip_path else "",
+            "command": cmd,
+        }
+        if summary_path:
+            write_json_file(summary_path, summary)
+            print(f"[INFO] 已写入执行摘要: {summary_path}")
+        if args.print_summary_json:
+            print("SUMMARY_JSON=" + json.dumps(summary, ensure_ascii=False))
         return 0
     except Exception as exc:
         print(f"[ERROR] {exc}", file=sys.stderr)
+        summary.update(
+            {
+                "status": "failed",
+                "exit_code": 1,
+                "error": str(exc),
+                "finished_at": now_iso(),
+                "duration_seconds": round(time.monotonic() - started_mono, 3),
+            }
+        )
+        if workdir is not None:
+            summary["workdir"] = str(workdir)
+        if result_path is not None:
+            summary["result_file"] = str(result_path)
+        if best_ip_path is not None:
+            summary["best_ip_file"] = str(best_ip_path)
+        if isinstance(exc, subprocess.CalledProcessError):
+            summary["exit_code"] = int(exc.returncode)
+
+        if summary_path:
+            write_json_file(summary_path, summary)
+            print(f"[INFO] 已写入执行摘要: {summary_path}", file=sys.stderr)
+        if args.print_summary_json:
+            print("SUMMARY_JSON=" + json.dumps(summary, ensure_ascii=False), file=sys.stderr)
         return 1
 
 

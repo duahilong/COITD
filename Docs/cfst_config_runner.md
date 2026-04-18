@@ -21,11 +21,21 @@
 python3 scripts/cfst/cfst_config_runner.py -c scripts/cfst/cfst_config.full.json
 ```
 
+可选：输出结构化摘要（给 Web/API 用）
+
+```bash
+python3 scripts/cfst/cfst_config_runner.py \
+  -c scripts/cfst/cfst_config.full.json \
+  --summary-json .cfst_jobs/last_summary.json \
+  --print-summary-json
+```
+
 执行成功后会输出：
 
 - `BEST_IP=...`（标准输出）
 - `BEST_IP_LIST=ip1,ip2,...`（当 `best_ip_count > 1` 时）
 - `best_ip.txt`（由配置项 `best_ip_file` 控制）
+- `summary.json`（当传入 `--summary-json` 时）
 
 ## 配置文件字段说明
 
@@ -54,3 +64,4 @@ python3 scripts/cfst/cfst_config_runner.py -c scripts/cfst/cfst_config.full.json
 
 - `o` 设为 `null` 时，启动器会自动使用 `result_file`。
 - 你也可以写 `httping_code`，启动器会自动转为 `httping-code`。
+- `--summary-json` 会输出统一结构：`status / exit_code / best_ip / best_ip_list / duration_seconds` 等字段。
