@@ -1,1 +1,5 @@
 /scripts/cfst_ddns/cfst_ddns.conf
+
+# Python cache / bytecode
+__pycache__/
+*.pyc
