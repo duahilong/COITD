@@ -7,6 +7,12 @@ TYPE=A
 TTL=600
 # Support multiple lines separated by commas, e.g. telecom,unicom,mobile
 LINE=default
+# Number of top IPs selected from CFST result and pushed to AliDNS
+PUSH_IP_COUNT=1
+# Write structured summary JSON for web/dashboard
+ENABLE_SUMMARY=true
+# Relative path is resolved against script directory
+SUMMARY_DIR=state
 RECORD_ID=
 CFST_ARGS=-n 200 -t 4 -dn 10 -dt 10
 RESULT_FILE=result_ddns.txt

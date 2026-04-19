@@ -15,6 +15,9 @@ This folder is an isolated workspace copy of `cfst_ddns` so future changes do no
 3. Run: `bash ./cfst_ddns.sh`
 
 ## Notes
-- Script runs CFST, picks the first IP in `RESULT_FILE`, and updates AliDNS.
+- Script runs CFST, selects top N IPs in `RESULT_FILE`, and upserts AliDNS records.
+- Configure `PUSH_IP_COUNT` in `cfst_ddns.conf` to control N (default `1`).
+- Script writes structured summary JSON after each run (default `state/latest.json` and `state/history/<run_id>.json`).
+- Configure `ENABLE_SUMMARY` and `SUMMARY_DIR` in `cfst_ddns.conf` to control summary behavior.
 - If `RECORD_ID` is empty, script auto queries record id by `RR + DOMAIN_NAME + TYPE`.
 - If record does not exist, script calls `AddDomainRecord`.
