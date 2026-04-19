@@ -1,0 +1,4 @@
+[submodule "CloudflareSpeedTest"]
+	path = CloudflareSpeedTest
+	url = https://github.com/XIU2/CloudflareSpeedTest.git
+	branch = master
