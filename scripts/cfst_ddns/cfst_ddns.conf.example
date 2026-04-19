@@ -1,0 +1,12 @@
+FOLDER=/root/coitd/CloudflareSpeedTest
+ALI_ACCESS_KEY_ID=your_access_key_id
+ALI_ACCESS_KEY_SECRET=your_access_key_secret
+DOMAIN_NAME=example.com
+RR=www
+TYPE=A
+TTL=600
+# Support multiple lines separated by commas, e.g. telecom,unicom,mobile
+LINE=default
+RECORD_ID=
+CFST_ARGS=-n 200 -t 4 -dn 10 -dt 10
+RESULT_FILE=result_ddns.txt
