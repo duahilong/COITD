@@ -21,7 +21,7 @@ COITD 是一个围绕 [CloudflareSpeedTest](./CloudflareSpeedTest/) 的自动化
 - `scripts/cfst_ddns/`：AliDNS DDNS 推送脚本与配置模板
 - `scripts/cfst_ddns_web/`：DDNS 专用 Web 监控页
 - `Docs/`：使用说明、模块文档、统一索引
-- `doss/`：阶段总结、测试记录、部署实录归档
+- `doss/`：部署文档归档
 
 ## 快速开始
 
@@ -70,9 +70,10 @@ python3 scripts/cfst_ddns_web/ddns_web_server.py \
 3. [Docs/cfst_config_runner.md](./Docs/cfst_config_runner.md)
 4. [Docs/cfst_job_controller.md](./Docs/cfst_job_controller.md)
 5. [Docs/cfst_web_console.md](./Docs/cfst_web_console.md)
-6. [scripts/cfst_ddns/README.md](./scripts/cfst_ddns/README.md)
-7. [scripts/cfst_ddns_web/README.md](./scripts/cfst_ddns_web/README.md)
-8. [doss/跨机器部署教程_2026-04-19.md](./doss/%E8%B7%A8%E6%9C%BA%E5%99%A8%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B_2026-04-19.md)
+6. [Docs/CFST_ARGS填写说明.md](./Docs/CFST_ARGS填写说明.md)
+7. [scripts/cfst_ddns/README.md](./scripts/cfst_ddns/README.md)
+8. [scripts/cfst_ddns_web/README.md](./scripts/cfst_ddns_web/README.md)
+9. [doss/跨机器部署教程_2026-04-19.md](./doss/%E8%B7%A8%E6%9C%BA%E5%99%A8%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B_2026-04-19.md)
 
 ## 配置提示
 

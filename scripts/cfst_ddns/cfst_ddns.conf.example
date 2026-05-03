@@ -1,4 +1,4 @@
-FOLDER=/root/coitd/CloudflareSpeedTest
+FOLDER=/root/coitd/scripts/cfst_ddns
 ALI_ACCESS_KEY_ID=your_access_key_id
 ALI_ACCESS_KEY_SECRET=your_access_key_secret
 DOMAIN_NAME=example.com

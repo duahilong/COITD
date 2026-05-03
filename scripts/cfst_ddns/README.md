@@ -6,11 +6,10 @@ This folder is an isolated workspace copy of `cfst_ddns` so future changes do no
 - `cfst_ddns.sh`: Linux shell script (migrated to Aliyun DDNS API).
 - `cfst_ddns.conf`: editable Aliyun config template.
 - `cfst_ddns.conf.example`: Aliyun config example.
-- `README.upstream.md`: upstream script README copy.
 
 ## Quick Start (Linux)
 1. Edit `cfst_ddns.conf` and fill all required fields.
-2. Ensure `FOLDER` points to a directory containing executable `cfst`.
+2. Ensure `FOLDER` points to a directory containing executable `cfst` (recommended: the current `scripts/cfst_ddns` directory).
 3. Run: `bash ./cfst_ddns.sh`
 
 ## Notes
