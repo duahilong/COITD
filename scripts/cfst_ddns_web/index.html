@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DDNS 监控面板</title>
+  <style>
+    :root {
+      --bg: #f3f6f9;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --ok: #16a34a;
+      --warn: #d97706;
+      --err: #dc2626;
+      --accent: #0f766e;
+      --accent-2: #0ea5e9;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 95% -10%, rgba(14, 165, 233, 0.18), transparent 26%),
+        radial-gradient(circle at 5% 0%, rgba(15, 118, 110, 0.16), transparent 24%),
+        var(--bg);
+    }
+
+    .wrap { max-width: 1680px; margin: 0 auto; padding: 18px 16px 28px; }
+    .hero {
+      background: linear-gradient(125deg, #0f766e, #0ea5e9);
+      color: #ecfeff;
+      border-radius: 16px;
+      padding: 20px 18px;
+      box-shadow: 0 16px 36px rgba(2, 132, 199, 0.2);
+    }
+    .hero h1 { margin: 0 0 8px; font-size: clamp(24px, 2.7vw, 36px); }
+    .hero p { margin: 0; opacity: 0.95; }
+
+    .toolbar {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+    .btn-main { background: #0f766e; color: #f0fdfa; }
+    .btn-main:hover { background: #0d6a63; }
+    .btn-ghost { border: 1px solid #cbd5e1; background: #fff; color: #334155; }
+    .btn-ghost:hover { background: #f8fafc; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .meta { font-size: 13px; color: #0f172a; }
+    .muted { color: var(--muted); }
+    .hero .meta { color: #e6f4ff; }
+    .hero .muted { color: #d7efff; }
+    .hero .toolbar .meta {
+      background: rgba(15, 23, 42, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 8px;
+      padding: 4px 8px;
+    }
+
+    .grid {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+    }
+    .col-4 { grid-column: span 4; }
+    .col-5 { grid-column: span 5; }
+    .col-6 { grid-column: span 6; }
+    .col-7 { grid-column: span 7; }
+    .col-8 { grid-column: span 8; }
+    .col-12 { grid-column: span 12; }
+
+    .title {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .k {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+    .v {
+      font-size: 14px;
+      font-weight: 700;
+      word-break: break-all;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(130px, 1fr));
+      gap: 10px;
+    }
+    .schedule-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .schedule-box {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f8fafc;
+      padding: 10px;
+    }
+    .status-line {
+      margin-top: 4px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .time-list {
+      display: grid;
+      gap: 8px;
+    }
+    .time-item {
+      display: grid;
+      grid-template-columns: 82px 1fr;
+      gap: 8px;
+      align-items: start;
+    }
+    .time-main {
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+    .time-sub {
+      margin-top: 2px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .count-main {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+    .count-sub {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .count-progress {
+      margin-top: 8px;
+      height: 8px;
+      width: 100%;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
+    }
+    .count-progress > span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #0f766e, #0ea5e9);
+      transition: width .25s ease;
+    }
+
+    .badge {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid #d1d5db;
+      background: #f8fafc;
+      color: #334155;
+    }
+    .ok { color: var(--ok); border-color: rgba(22, 163, 74, 0.35); background: rgba(22, 163, 74, 0.08); }
+    .warn { color: var(--warn); border-color: rgba(217, 119, 6, 0.35); background: rgba(217, 119, 6, 0.08); }
+    .err { color: var(--err); border-color: rgba(220, 38, 38, 0.35); background: rgba(220, 38, 38, 0.08); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid #bae6fd;
+      background: #e0f2fe;
+      color: #075985;
+      font-family: "JetBrains Mono", "Cascadia Mono", monospace;
+    }
+    .chip-old {
+      border-color: #fbcfe8;
+      background: #fdf2f8;
+      color: #9d174d;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      table-layout: fixed;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      word-break: break-word;
+    }
+    th { color: var(--muted); font-weight: 700; }
+    .td-nowrap {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-break: normal;
+    }
+    .history-table th:nth-child(1) { width: 34%; }
+    .history-table th:nth-child(2) { width: 10%; }
+    .history-table th:nth-child(3) { width: 24%; }
+    .history-table th:nth-child(4) { width: 20%; }
+    .history-table th:nth-child(5) { width: 12%; }
+    .op-summary {
+      margin-bottom: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: #f8fafc;
+    }
+    .op-summary-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .carrier-list {
+      display: grid;
+      gap: 8px;
+    }
+    .carrier-item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      background: #fff;
+    }
+    .carrier-item-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .carrier-name {
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .carrier-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .carrier-sub {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .carrier-ips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .ops-detail {
+      margin-top: 6px;
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+      padding: 6px 8px;
+      background: #fff;
+    }
+    .ops-detail > summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-weight: 700;
+      user-select: none;
+    }
+    .ops-detail[open] > summary {
+      margin-bottom: 6px;
+    }
+
+    .log {
+      margin-top: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #020617;
+      color: #e2e8f0;
+      padding: 10px;
+      height: 300px;
+      overflow: auto;
+      font-size: 12px;
+      line-height: 1.42;
+      white-space: pre-wrap;
+      font-family: "JetBrains Mono", "Cascadia Mono", monospace;
+    }
+
+    @media (max-width: 980px) {
+      .col-4, .col-5, .col-6, .col-7, .col-8 { grid-column: span 12; }
+      .kpi-grid { grid-template-columns: 1fr; }
+      .schedule-grid { grid-template-columns: 1fr; }
+      .time-item { grid-template-columns: 1fr; }
+      .count-main, .time-main { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>DDNS 专用监控台</h1>
+      <p>仅用于 <code>cfst_ddns.sh</code>：查看运行状态、下次执行时间、IP 变更和 DDNS 推送结果。</p>
+      <div class="toolbar">
+        <button id="refreshBtn" class="btn btn-main">刷新页面数据</button>
+        <button id="runNowBtn" class="btn btn-ghost">立即运行脚本</button>
+        <label class="meta"><input type="checkbox" id="autoRefresh" checked> 自动更新时间</label>
+        <span class="meta muted">状态数据每15秒更新一次，日志需要手动刷新</span>
+        <span id="lastRefresh" class="meta muted"></span>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card col-4">
+        <h2 class="title">定时任务状态</h2>
+        <div class="schedule-grid">
+          <div class="schedule-box">
+            <div class="k">自动运行开关</div>
+            <div id="timerSwitch" class="status-line">-</div>
+          </div>
+          <div class="schedule-box">
+            <div class="k">当前任务状态</div>
+            <div id="taskState" class="status-line">-</div>
+          </div>
+        </div>
+        <div class="schedule-box" style="margin-bottom:10px;">
+          <div class="k">最近执行结果</div>
+          <div id="lastResult" class="status-line">-</div>
+        </div>
+        <div class="schedule-box">
+          <div class="time-list">
+            <div class="time-item">
+              <div class="k">上次执行</div>
+              <div>
+                <div id="lastRun" class="time-main">-</div>
+                <div id="lastRunSub" class="time-sub">-</div>
+              </div>
+            </div>
+            <div class="time-item">
+              <div class="k">下次执行</div>
+              <div>
+                <div id="nextRun" class="time-main">-</div>
+                <div id="nextRunSub" class="time-sub">-</div>
+              </div>
+            </div>
+            <div class="time-item">
+              <div class="k">距离下次</div>
+              <div>
+                <div id="leftRunMain" class="count-main">-</div>
+                <div id="leftRunHint" class="count-sub">-</div>
+                <div class="count-progress"><span id="leftRunProgress"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card col-8">
+        <h2 class="title">本次与上次 IP 对比</h2>
+        <div class="kpi-grid">
+          <div>
+            <div class="k">运行 ID</div>
+            <div id="runId" class="v">-</div>
+          </div>
+          <div>
+            <div class="k">当前状态</div>
+            <div id="runStatus" class="v">-</div>
+          </div>
+          <div>
+            <div class="k">开始时间</div>
+            <div id="startedAt" class="v">-</div>
+          </div>
+          <div>
+            <div class="k">结束时间</div>
+            <div id="finishedAt" class="v">-</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <div class="k">本次 IP</div>
+          <div id="currentIps" class="chips"></div>
+        </div>
+        <div style="margin-top:8px;">
+          <div class="k">上次 IP</div>
+          <div id="previousIps" class="chips"></div>
+        </div>
+        <div style="margin-top:8px;">
+          <span class="k">变更状态：</span><span id="ipChanged" class="badge">-</span>
+        </div>
+      </article>
+
+      <article class="card col-12">
+        <h2 class="title">DDNS 推送结果（最新一轮）</h2>
+        <div class="op-summary">
+          <div class="op-summary-head">
+            <div class="k">目标推送 IP 数（每运营商）：<span id="pushTarget">-</span></div>
+            <div class="k">运营商数量：<span id="carrierCount">-</span></div>
+          </div>
+          <div id="opsCarrierList" class="carrier-list"></div>
+        </div>
+        <details class="ops-detail">
+          <summary>查看明细记录</summary>
+          <table>
+            <thead>
+              <tr>
+                <th>运营商</th>
+                <th>排序</th>
+                <th>IP</th>
+                <th>动作</th>
+                <th>结果</th>
+                <th>记录 ID</th>
+                <th>请求 ID</th>
+                <th>错误信息</th>
+              </tr>
+            </thead>
+            <tbody id="opsTbody"></tbody>
+          </table>
+        </details>
+      </article>
+
+      <article class="card col-7">
+        <h2 class="title">最近执行历史</h2>
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>运行 ID</th>
+              <th>状态</th>
+              <th>开始时间</th>
+              <th>IP</th>
+              <th>推送</th>
+            </tr>
+          </thead>
+          <tbody id="historyTbody"></tbody>
+        </table>
+      </article>
+
+      <article class="card col-5">
+        <h2 class="title">运行日志（尾部）</h2>
+        <div class="toolbar" style="margin-top:0;">
+          <label class="meta">行数
+            <select id="logLines">
+              <option value="80">80</option>
+              <option value="120" selected>120</option>
+              <option value="200">200</option>
+            </select>
+          </label>
+          <button id="refreshLogBtn" class="btn btn-ghost">刷新日志</button>
+        </div>
+        <div id="logBox" class="log"></div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const els = {
+      refreshBtn: document.getElementById('refreshBtn'),
+      runNowBtn: document.getElementById('runNowBtn'),
+      autoRefresh: document.getElementById('autoRefresh'),
+      lastRefresh: document.getElementById('lastRefresh'),
+      timerSwitch: document.getElementById('timerSwitch'),
+      taskState: document.getElementById('taskState'),
+      lastRun: document.getElementById('lastRun'),
+      lastRunSub: document.getElementById('lastRunSub'),
+      nextRun: document.getElementById('nextRun'),
+      nextRunSub: document.getElementById('nextRunSub'),
+      leftRunMain: document.getElementById('leftRunMain'),
+      leftRunHint: document.getElementById('leftRunHint'),
+      leftRunProgress: document.getElementById('leftRunProgress'),
+      lastResult: document.getElementById('lastResult'),
+      runId: document.getElementById('runId'),
+      runStatus: document.getElementById('runStatus'),
+      startedAt: document.getElementById('startedAt'),
+      finishedAt: document.getElementById('finishedAt'),
+      currentIps: document.getElementById('currentIps'),
+      previousIps: document.getElementById('previousIps'),
+      ipChanged: document.getElementById('ipChanged'),
+      opsTbody: document.getElementById('opsTbody'),
+      opsCarrierList: document.getElementById('opsCarrierList'),
+      pushTarget: document.getElementById('pushTarget'),
+      carrierCount: document.getElementById('carrierCount'),
+      historyTbody: document.getElementById('historyTbody'),
+      logBox: document.getElementById('logBox'),
+      logLines: document.getElementById('logLines'),
+      refreshLogBtn: document.getElementById('refreshLogBtn'),
+    };
+
+    const STATUS_CN_MAP = {
+      active: '运行中',
+      activating: '启动中',
+      inactive: '未运行',
+      failed: '失败',
+      waiting: '等待中',
+      dead: '已停止',
+      running: '运行中',
+      exited: '已退出',
+      success: '成功',
+      ok: '成功',
+      error: '错误',
+      timeout: '超时',
+      enabled: '已启用',
+      disabled: '未启用',
+      elapsed: '已结束',
+      done: '完成',
+      unknown: '未知',
+      cancelled: '已取消',
+      canceled: '已取消',
+      'exit-code': '退出码异常',
+      'start-limit-hit': '启动频率受限',
+    };
+
+    const ACTION_CN_MAP = {
+      create: '创建',
+      update: '更新',
+      none: '无动作',
+      skip: '跳过',
+    };
+
+    const LINE_CN_MAP = {
+      telecom: '电信',
+      unicom: '联通',
+      mobile: '移动',
+      cmcc: '移动',
+      cernet: '教育网',
+      oversea: '境外',
+      default: '默认',
+      search: '智能解析',
+    };
+
+    const AUTO_UI_INTERVAL_MS = 1000;
+    const AUTO_POLL_INTERVAL_MS = 15000;
+    let dashboardCache = null;
+    let dashboardFetchedAt = null;
+    let uiTimerId = 0;
+    let pollTimerId = 0;
+
+    function esc(v) {
+      return String(v)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function fmt(v) {
+      return (v === null || v === undefined || v === '') ? '-' : String(v);
+    }
+
+    function toZhStatus(v) {
+      const raw = String(v || '').trim();
+      if (!raw) return '-';
+      const key = raw.toLowerCase();
+      return STATUS_CN_MAP[key] || raw;
+    }
+
+    function toZhAction(v) {
+      const raw = String(v || '').trim();
+      if (!raw) return '-';
+      const key = raw.toLowerCase();
+      return ACTION_CN_MAP[key] || raw;
+    }
+
+    function toZhLine(v) {
+      const raw = String(v || '').trim();
+      if (!raw) return '-';
+      const key = raw.toLowerCase();
+      return LINE_CN_MAP[key] || raw;
+    }
+
+    function badgeClassFromStatus(s) {
+      const v = String(s || '').toLowerCase();
+      if (v.includes('failed') || v.includes('error') || v.includes('timeout') || v.includes('exit-code') || v.includes('dead')) {
+        return 'badge err';
+      }
+      if (v.includes('success') || v === 'ok' || v.includes('active') || v.includes('running') || v.includes('enabled') || v.includes('done')) {
+        return 'badge ok';
+      }
+      return 'badge warn';
+    }
+
+    function formatDateTime(v) {
+      if (!v) return '-';
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return String(v);
+      return d.toLocaleString('zh-CN', { hour12: false });
+    }
+
+    function formatDuration(seconds) {
+      const n = Number(seconds);
+      if (!Number.isFinite(n) || n < 0) return '-';
+      let s = Math.floor(n);
+      const days = Math.floor(s / 86400); s %= 86400;
+      const hours = Math.floor(s / 3600); s %= 3600;
+      const mins = Math.floor(s / 60); s %= 60;
+      const parts = [];
+      if (days) parts.push(days + '天');
+      if (hours) parts.push(hours + '小时');
+      if (mins) parts.push(mins + '分');
+      if (s || !parts.length) parts.push(s + '秒');
+      return parts.join('');
+    }
+
+    function parseEnglishLeft(human) {
+      const raw = String(human || '').trim();
+      if (!raw) return null;
+      const re = /(\d+)\s*([dhms])/g;
+      let m;
+      let total = 0;
+      let matched = false;
+      while ((m = re.exec(raw)) !== null) {
+        matched = true;
+        const num = Number(m[1] || 0);
+        const unit = m[2];
+        if (unit === 'd') total += num * 86400;
+        if (unit === 'h') total += num * 3600;
+        if (unit === 'm') total += num * 60;
+        if (unit === 's') total += num;
+      }
+      return matched ? total : null;
+    }
+
+    function formatRelative(v) {
+      if (!v) return '';
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return '';
+      const diffSec = Math.round((d.getTime() - Date.now()) / 1000);
+      const label = formatDuration(Math.abs(diffSec));
+      return diffSec >= 0 ? `${label}后` : `${label}前`;
+    }
+
+    function formatReadableTime(v) {
+      const text = formatDateTime(v);
+      if (text === '-') return '-';
+      const rel = formatRelative(v);
+      return rel ? `${text}（${rel}）` : text;
+    }
+
+    function parseTs(v) {
+      if (!v) return NaN;
+      const ts = Date.parse(v);
+      return Number.isFinite(ts) ? ts : NaN;
+    }
+
+    function serviceRunningState(service) {
+      const st = String((service || {}).active_state || '').toLowerCase();
+      return st === 'active' || st === 'activating' || st === 'reloading';
+    }
+
+    function formatHistoryTime(v) {
+      return formatDateTime(v);
+    }
+
+    function shortenRunId(v) {
+      const raw = fmt(v);
+      if (raw === '-' || raw.length <= 26) return raw;
+      return raw.slice(0, 10) + '...' + raw.slice(-6);
+    }
+
+    function compactIps(v) {
+      const arr = Array.isArray(v) ? v.filter(Boolean).map(String) : [];
+      if (!arr.length) return '-';
+      if (arr.length === 1) return arr[0];
+      return `${arr[0]} 等${arr.length}个`;
+    }
+
+    async function req(url, opts = {}) {
+      const r = await fetch(url, opts);
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.ok) throw new Error(data.error || ('HTTP ' + r.status));
+      return data;
+    }
+
+    function renderChips(target, arr, old = false) {
+      target.innerHTML = '';
+      const items = Array.isArray(arr) ? arr : [];
+      if (!items.length) {
+        target.innerHTML = '<span class="muted">-</span>';
+        return;
+      }
+      for (const ip of items) {
+        const span = document.createElement('span');
+        span.className = old ? 'chip chip-old' : 'chip';
+        span.textContent = ip;
+        target.appendChild(span);
+      }
+    }
+
+    function rankNum(v) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 9999;
+    }
+
+    function renderOps(ops, lineList = []) {
+      const rows = Array.isArray(ops) ? ops : [];
+      if (!rows.length) {
+        els.opsTbody.innerHTML = '<tr><td colspan="8" class="muted">暂无数据</td></tr>';
+        els.opsCarrierList.innerHTML = '<div class="muted">暂无数据</div>';
+        els.carrierCount.textContent = '0';
+        return;
+      }
+
+      const lineOrder = new Map();
+      const orderSource = Array.isArray(lineList) ? lineList : [];
+      orderSource.forEach((line, idx) => {
+        const key = String(line || '').trim().toLowerCase();
+        if (key && !lineOrder.has(key)) lineOrder.set(key, idx);
+      });
+
+      const groupMap = new Map();
+      for (const op of rows) {
+        const rawLine = String(op.line || '').trim().toLowerCase() || 'unknown';
+        if (!groupMap.has(rawLine)) {
+          groupMap.set(rawLine, {
+            rawLine,
+            line: toZhLine(rawLine),
+            ips: new Set(),
+            success: 0,
+            failed: 0,
+            count: 0,
+            target: 0,
+            rows: [],
+          });
+        }
+        const g = groupMap.get(rawLine);
+        const ip = fmt(op.ip);
+        if (ip !== '-') g.ips.add(ip);
+        if (op.ok) g.success += 1;
+        else g.failed += 1;
+        g.count += 1;
+        g.target = Math.max(g.target, Number(op.total) || 0);
+        g.rows.push(op);
+      }
+
+      const grouped = Array.from(groupMap.values()).sort((a, b) => {
+        const ai = lineOrder.has(a.rawLine) ? lineOrder.get(a.rawLine) : 999;
+        const bi = lineOrder.has(b.rawLine) ? lineOrder.get(b.rawLine) : 999;
+        if (ai !== bi) return ai - bi;
+        return a.line.localeCompare(b.line, 'zh-CN');
+      });
+
+      els.carrierCount.textContent = String(grouped.length);
+      els.opsCarrierList.innerHTML = grouped.map(g => {
+        const total = g.target || g.count;
+        const done = g.success + g.failed;
+        const allSuccess = g.failed === 0 && done > 0;
+        const statusBadge = allSuccess ? 'badge ok' : (g.success > 0 ? 'badge warn' : 'badge err');
+        const statusText = allSuccess ? '全部成功' : (g.success > 0 ? '部分成功' : '全部失败');
+        const sortedRows = g.rows.slice().sort((x, y) => rankNum(x.rank) - rankNum(y.rank));
+        const ipChips = sortedRows.map(op => {
+          const rank = fmt(op.rank);
+          const ip = fmt(op.ip);
+          return `<span class="chip">#${esc(rank)} ${esc(ip)}</span>`;
+        }).join('');
+        return `
+        <div class="carrier-item">
+          <div class="carrier-item-head">
+            <span class="carrier-name">${esc(g.line)}</span>
+            <span class="carrier-meta">推送 ${done}/${total}</span>
+            <span class="${statusBadge}">${statusText}</span>
+          </div>
+          <div class="carrier-ips">${ipChips || '<span class="muted">-</span>'}</div>
+          <div class="carrier-sub">成功：${g.success}，失败：${g.failed}</div>
+        </div>`;
+      }).join('');
+
+      els.opsTbody.innerHTML = rows.map(op => {
+        const ok = op.ok
+          ? '<span class="badge ok">成功</span>'
+          : '<span class="badge err">失败</span>';
+        return `
+          <tr>
+            <td>${esc(toZhLine(op.line))}</td>
+            <td class="td-nowrap">${esc(fmt(op.rank))}/${esc(fmt(op.total))}</td>
+            <td class="td-nowrap">${esc(fmt(op.ip))}</td>
+            <td>${esc(toZhAction(op.action))}</td>
+            <td>${ok}</td>
+            <td class="td-nowrap" title="${esc(fmt(op.record_id))}">${esc(fmt(op.record_id))}</td>
+            <td class="td-nowrap" title="${esc(fmt(op.request_id))}">${esc(fmt(op.request_id))}</td>
+            <td class="td-nowrap" title="${esc(fmt(op.error_message || op.error_code))}">${esc(fmt(op.error_message || op.error_code))}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    function renderHistory(rows) {
+      const arr = Array.isArray(rows) ? rows : [];
+      if (!arr.length) {
+        els.historyTbody.innerHTML = '<tr><td colspan="5" class="muted">暂无历史记录</td></tr>';
+        return;
+      }
+      els.historyTbody.innerHTML = arr.map(it => {
+        const st = `<span class="${badgeClassFromStatus(it.status)}">${esc(toZhStatus(it.status))}</span>`;
+        const ips = compactIps(it.selected_ips);
+        const runId = fmt(it.run_id);
+        const runIdShort = shortenRunId(runId);
+        const pushText = `成功${fmt(it.ddns_success)} / 失败${fmt(it.ddns_failed)}`;
+        return `
+          <tr>
+            <td class="td-nowrap" title="${esc(runId)}">${esc(runIdShort)}</td>
+            <td>${st}</td>
+            <td class="td-nowrap" title="${esc(formatReadableTime(it.started_at))}">${esc(formatHistoryTime(it.started_at))}</td>
+            <td class="td-nowrap" title="${esc(Array.isArray(it.selected_ips) ? it.selected_ips.join(', ') : '-') }">${esc(fmt(ips))}</td>
+            <td class="td-nowrap">${esc(pushText)}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    function updateRefreshLabel() {
+      if (!dashboardFetchedAt) {
+        els.lastRefresh.textContent = '尚未获取到状态数据';
+        return;
+      }
+      els.lastRefresh.textContent =
+        '最近一次数据更新：' +
+        dashboardFetchedAt.toLocaleString('zh-CN', { hour12: false });
+    }
+
+    function renderDashboard(data, options = {}) {
+      const timeOnly = !!options.timeOnly;
+      const timer = data.timer || {};
+      const service = data.service || {};
+      const latest = data.latest || {};
+      const cfg = latest.config || {};
+
+      const lastResultRaw = service.result || timer.result || latest.status || '';
+      const nextTsForLeft = parseTs(timer.next_run_at);
+      let leftSec = null;
+      if (Number.isFinite(nextTsForLeft)) {
+        leftSec = Math.max(0, Math.round((nextTsForLeft - Date.now()) / 1000));
+      } else {
+        leftSec = (timer.left_seconds === null || timer.left_seconds === undefined)
+          ? parseEnglishLeft(timer.left_human)
+          : Number(timer.left_seconds);
+      }
+      const timerActive = String(timer.active_state || '').toLowerCase() === 'active';
+      const timerSub = String(timer.sub_state || '').toLowerCase();
+      const serviceRunning = serviceRunningState(service);
+      const lastRunText = formatDateTime(timer.last_run_at);
+      const nextRunText = formatDateTime(timer.next_run_at);
+      const lastRunRel = formatRelative(timer.last_run_at) || '暂无';
+      const nextRunRel = formatRelative(timer.next_run_at) || '暂无';
+
+      const timerSwitchText = timerActive ? '已开启（自动执行）' : '已关闭（不会自动执行）';
+      const timerSwitchCls = timerActive ? 'badge ok' : 'badge err';
+      els.timerSwitch.innerHTML = `<span class="${timerSwitchCls}">${esc(timerSwitchText)}</span>`;
+
+      let taskText = '状态未知';
+      let taskCls = 'badge warn';
+      if (serviceRunning) {
+        taskText = '脚本正在运行';
+        taskCls = 'badge warn';
+      } else if (timerActive && timerSub === 'waiting') {
+        taskText = '等待下一次自动执行';
+        taskCls = 'badge ok';
+      } else if (timerActive) {
+        taskText = `定时器已开启（${toZhStatus(timer.sub_state)}）`;
+        taskCls = 'badge warn';
+      } else {
+        taskText = '未开启自动执行';
+        taskCls = 'badge err';
+      }
+      els.taskState.innerHTML = `<span class="${taskCls}">${esc(taskText)}</span>`;
+
+      els.lastResult.innerHTML = `<span class="${badgeClassFromStatus(lastResultRaw)}">上次执行：${esc(toZhStatus(lastResultRaw))}</span>`;
+
+      els.lastRun.textContent = lastRunText;
+      els.lastRunSub.textContent = lastRunText === '-' ? '暂无执行记录' : `距今 ${lastRunRel}`;
+      els.nextRun.textContent = nextRunText;
+      els.nextRunSub.textContent = nextRunText === '-' ? '尚未获取到计划时间' : `将在 ${nextRunRel} 执行`;
+
+      if (leftSec === null || Number.isNaN(leftSec)) {
+        els.leftRunMain.textContent = fmt(timer.left_human);
+        els.leftRunHint.textContent = '等待系统返回倒计时';
+        els.leftRunProgress.style.width = '0%';
+      } else {
+        els.leftRunMain.textContent = formatDuration(leftSec);
+        els.leftRunHint.textContent = nextRunText === '-' ? '下次执行时间未确定' : `预计 ${nextRunText} 自动执行`;
+        const lastTs = parseTs(timer.last_run_at);
+        const nextTs = parseTs(timer.next_run_at);
+        let progress = 0;
+        if (Number.isFinite(lastTs) && Number.isFinite(nextTs) && nextTs > lastTs) {
+          progress = Math.max(0, Math.min(1, (Date.now() - lastTs) / (nextTs - lastTs)));
+        }
+        els.leftRunProgress.style.width = `${Math.round(progress * 100)}%`;
+      }
+
+      if (!timeOnly) {
+        els.runId.textContent = fmt(latest.run_id);
+        els.runStatus.innerHTML = `<span class="${badgeClassFromStatus(latest.status)}">${esc(toZhStatus(latest.status))}</span>`;
+        els.startedAt.textContent = formatReadableTime(latest.started_at);
+        els.finishedAt.textContent = formatReadableTime(latest.finished_at);
+        renderChips(els.currentIps, latest.selected_ips || [], false);
+        renderChips(els.previousIps, latest.previous_selected_ips || [], true);
+
+        const changed = !!latest.ip_changed;
+        els.ipChanged.className = changed ? 'badge warn' : 'badge ok';
+        els.ipChanged.textContent = changed ? '已变更' : '未变更';
+
+        els.pushTarget.textContent = fmt(cfg.push_ip_count);
+        renderOps(((latest.ddns || {}).operations) || [], cfg.line_list || []);
+        renderHistory(data.history || []);
+      }
+    }
+
+    async function refreshDashboard() {
+      const data = await req('/api/dashboard?limit=20');
+      dashboardCache = data;
+      dashboardFetchedAt = new Date();
+      renderDashboard(data, { timeOnly: false });
+      updateRefreshLabel();
+      return data;
+    }
+
+    function tickRealtimeClock() {
+      if (!dashboardCache) return;
+      renderDashboard(dashboardCache, { timeOnly: true });
+    }
+
+    async function refreshLogs() {
+      const lines = Number(els.logLines.value || 120);
+      const data = await req('/api/logs?lines=' + encodeURIComponent(lines));
+      const linesArr = Array.isArray(data.lines) ? data.lines : [];
+      els.logBox.textContent = linesArr.length ? linesArr.join('\n') : '[暂无日志]';
+      els.logBox.scrollTop = els.logBox.scrollHeight;
+    }
+
+    async function runNow() {
+      els.runNowBtn.disabled = true;
+      try {
+        await req('/api/run-now', { method: 'POST' });
+        await refreshDashboard();
+        await refreshLogs();
+      } finally {
+        els.runNowBtn.disabled = false;
+      }
+    }
+
+    els.refreshBtn.addEventListener('click', async () => {
+      await refreshDashboard();
+      await refreshLogs();
+    });
+    els.refreshLogBtn.addEventListener('click', refreshLogs);
+    els.runNowBtn.addEventListener('click', runNow);
+
+    function resetAutoRefresh() {
+      if (uiTimerId) clearInterval(uiTimerId);
+      if (pollTimerId) clearInterval(pollTimerId);
+      if (!els.autoRefresh.checked) return;
+      uiTimerId = setInterval(() => {
+        try {
+          tickRealtimeClock();
+        } catch (_) {}
+      }, AUTO_UI_INTERVAL_MS);
+      pollTimerId = setInterval(async () => {
+        try {
+          await refreshDashboard();
+        } catch (_) {}
+      }, AUTO_POLL_INTERVAL_MS);
+    }
+    els.autoRefresh.addEventListener('change', resetAutoRefresh);
+
+    (async () => {
+      try {
+        await refreshDashboard();
+        await refreshLogs();
+        tickRealtimeClock();
+      } catch (e) {
+        els.lastRefresh.textContent = '加载失败：' + (e.message || e);
+      }
+      resetAutoRefresh();
+    })();
+  </script>
+</body>
+</html>
