@@ -4,7 +4,6 @@ This folder is an isolated workspace copy of `cfst_ddns` so future changes do no
 
 ## Files
 - `cfst_ddns.sh`: Linux shell script (migrated to Aliyun DDNS API).
-- `cfst_ddns.bat`: Windows batch version (copied from upstream, still Cloudflare style).
 - `cfst_ddns.conf`: editable Aliyun config template.
 - `cfst_ddns.conf.example`: Aliyun config example.
 - `README.upstream.md`: upstream script README copy.

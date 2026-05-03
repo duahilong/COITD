@@ -26,7 +26,6 @@
 
 - [cfst_config_runner.md](./cfst_config_runner.md)：如何通过 JSON/JSONC 配置启动 CFST
 - [cfst_job_controller.md](./cfst_job_controller.md)：后台任务控制、状态目录、Web 对接方式
-- [cfst_pipeline.md](./cfst_pipeline.md)：Windows 下的两阶段流水线脚本说明
 - [cfst_web_console.md](./cfst_web_console.md)：CFST Web 控制台能力与 API
 
 ### DDNS 相关
